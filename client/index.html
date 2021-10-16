@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Socket.IO chat</title>
+    <style>
+      body { margin: 0; padding-bottom: 3rem; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+
+      #form { background: rgba(0, 0, 0, 0.15); padding: 0.25rem; position: fixed; bottom: 0; left: 0; right: 0; display: flex; height: 3rem; box-sizing: border-box; backdrop-filter: blur(10px); }
+      #input { border: none; padding: 0 1rem; flex-grow: 1; border-radius: 2rem; margin: 0.25rem; }
+      #input:focus { outline: none; }
+      #form > button { background: #333; border: none; padding: 0 1rem; margin: 0.25rem; border-radius: 3px; outline: none; color: #fff; }
+
+		#isTyping { padding: 0.25rem; position: fixed; bottom: 0; left: 0; right: 0; display: flex; height: 5rem; box-sizing: border-box; backdrop-filter: blur(10px);}
+
+      #messages { list-style-type: none; margin: 0; padding: 0; }
+      #messages > li { padding: 0.5rem 1rem; }
+      #messages > li:nth-child(odd) { background: #efefef; }
+    </style>
+  </head>
+  <body>
+    <ul id="messages"></ul>
+	<div id="isTyping"></div>
+    <form id="form" action="">
+      <input id="input" autocomplete="off" oninput="onInputChange(this.value)" /><button>Send</button>
+    </form>
+	<script src="/socket.io/socket.io.js"></script>
+		<script>
+		let name = null;
+		do{
+			name = prompt("Enter your name");
+		}while(name == null || name == "" );
+		var socket = io();
+		socket.emit('username', name);
+
+		var form = document.getElementById('form');
+		var input = document.getElementById('input');
+		var typingDiv = document.getElementById('isTyping');
+		let namesTyping = [];
+
+		form.addEventListener('submit', function(e) {
+			e.preventDefault();
+			if (input.value) {
+			socket.emit('chat message', input.value);
+			input.value = '';
+			}
+		});
+
+		socket.on('new connection', (name) => {
+			var item = document.createElement('li');    	
+			item.textContent = name + " joined the room !";    	
+			messages.appendChild(item);    	
+			window.scrollTo(0, document.body.scrollHeight); 
+		});
+
+		socket.on('chat message', function(msg) {
+			var item = document.createElement('li');    	
+			item.textContent = msg.username + ": " + msg.msg;    	
+			messages.appendChild(item);    	
+			window.scrollTo(0, document.body.scrollHeight);  
+		});
+
+		socket.on('is typing', (data) => {
+			console.log("Is typing received");
+			let index = namesTyping.indexOf(data.name);
+			if(data.isTyping && index == -1)
+			{
+				namesTyping.push(data.name);
+			}
+			else if(!data.isTyping && index != -1)
+			{
+				namesTyping.splice(index, 1);
+			}
+
+			if(namesTyping.length > 0)
+			{
+				let text = "";
+				if(namesTyping.length <= 3)
+				{
+					namesTyping.forEach( (name) => {
+						text += name;
+						if(namesTyping.indexOf(name) < namesTyping.length -1)
+						{
+							text += ", ";
+						}
+					});
+				}
+				else
+				{
+					text = "Multiple peoples";
+				}
+				text += (namesTyping.length == 1 ? " is" : " are") + " typing...";
+				typingDiv.textContent = text;
+			}
+			else
+			{
+				typingDiv.textContent = "";
+			}
+		});
+
+		function onInputChange()
+		{
+			console.log(input.value);
+			socket.emit('is typing', input.value != "");
+		}
+		</script>
+  </body>
+</html>
