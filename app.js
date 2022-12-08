@@ -5,8 +5,7 @@ const server = http.createServer(app);
 const User = require("./users");
 
 const { Server } = require("socket.io");
-const { off } = require("process");
-const io = new Server(server);
+const io = new Server(server, {cors: {origin: "*"}});
 
 let users = [];
 
